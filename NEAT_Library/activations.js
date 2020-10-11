@@ -76,5 +76,3 @@ var activation = {
     return fx * scale;
   },
 };
-
-module.exports = activation;

@@ -1,17 +1,27 @@
 var cnv;
 
 function setup() {
-  cnv = createCanvas(windowWidth, windowHeight - 38);
+  cnv = createCanvas(100, 100);
   //cnv.parent("canvasParent");
   centerCanvas();
   noStroke();
   frameRate(30);
+  initMethods();
+  //scenarioInit = null;
+  XORgateInit()
 }
 
 function draw() {
-  background(100);
-  ellipse(mouseX, mouseY, 20, 20);
-  document.getElementById("framerate").innerText = round(frameRate());
+  if (scenarioDraw) {
+    noStroke()
+    scenarioDraw();
+    noFill()
+    stroke(1);
+    rect(0,0,100,100)
+  } else {
+    //background(100);
+  }
+  //document.getElementById("framerate").innerText = round(frameRate());
 }
 
 function centerCanvas() {
@@ -22,6 +32,6 @@ function centerCanvas() {
 }
 
 function windowResized() {
-  resizeCanvas(windowWidth, windowHeight - 38);
+  //resizeCanvas(windowWidth, windowHeight - 38);
   centerCanvas();
 }
