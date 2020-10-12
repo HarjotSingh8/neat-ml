@@ -1,4 +1,4 @@
-resolution = 2
+resolution = 1
 class XORgate {
   constructor(population) {
     this.populationCount = population;
@@ -19,19 +19,19 @@ class XORgate {
     }
     this.dataPoints = []
     for(var i=0; i<this.numDataPoints; i++) {
-      /*if(random(0,1)<0.5) {
+      if(random(0,1)<0.5) {
         if(random(0,1)<0.5)
-        this.dataPoints.push([random(0, 0.4), random(0, 0.4)]);
+        this.dataPoints.push([random(0, 0.49), random(0, 0.49)]);
         else
-        this.dataPoints.push([random(0, 0.4), random(0.6, 1)]);
+        this.dataPoints.push([random(0, 0.49), random(0.51, 1)]);
       }
       else {
         if(random(0,1)<0.5)
-        this.dataPoints.push([random(0.6, 1), random(0, 0.4)]);
+        this.dataPoints.push([random(0.51, 1), random(0, 0.49)]);
         else
-        this.dataPoints.push([random(0.6, 1), random(0.6, 1)]);
-      }*/
-      this.dataPoints.push([random(),random()])
+        this.dataPoints.push([random(0.51, 1), random(0.51, 1)]);
+      }
+      //this.dataPoints.push([random(),random()])
     }
     //this.randomizePopulation()
   }
@@ -129,6 +129,7 @@ function XORgateDraw() {
     rect(Math.floor(scenarioClass.population[i].inputs[0]*100), 
     Math.floor(scenarioClass.population[i].inputs[1]*100),1,1)
   }*/
+  if(neat.generation%10==0) {
   neat.sort()
   for(var i=0; i<100; i+=resolution) {
     for(var j=0; j<100; j+=resolution) {
@@ -137,21 +138,23 @@ function XORgateDraw() {
       rect(i,j,resolution,resolution)
     }
   }
-  neat.population.sort()
+  
+  //neat.population.sort()
   for(var i=0; i<scenarioClass.dataPoints.length;i++) {
     var a = scenarioClass.dataPoints[i][0];
     var b = scenarioClass.dataPoints[i][1];
     var c = neat.population[0].activate([a,b])
-    fill(255,0,0,100);
+    fill(255,0,0);
     if( (a>0.5 && b>0.5) || (a<0.5 && b<0.5) ) {
       if(c<0.5)
-      fill(0,255,0,100);
+      fill(0,255,0);
     }
     else {
       if(c>0.5)
-      fill(0,255,0,100);
+      fill(0,255,0);
     }
     rect(a*100,b*100,2,2)
+  }
   }
   //console.log(neat.population[0].score);
   nextGeneration(scenarioClass.population)

@@ -33,7 +33,7 @@ class NEAT {
 
     // Safe Population Percent (Number [0-100))
     // Percentage of population that is safe from mutations and eliminations
-    this.safePopulationPercent = parameters.safePopulationPercent || 0.2
+    this.safePopulationPercent = parameters.safePopulationPercent || 0.1
 
     // Mutation Rate (Number [0-1])
     // How much can nodes mutate
@@ -52,11 +52,11 @@ class NEAT {
 
     // Max Nodes
     // Number of Maximum Nodes in a network
-    this.maxNodes = parameters.maxNodes || Infinity;
+    this.maxNodes = parameters.maxNodes || 5;
 
     // Max Connections
     // Number of Maximum Connections in a network
-    this.maxConnections = parameters.maxConnections || 5;
+    this.maxConnections = parameters.maxConnections || Infinity;
 
     /**
      * generation history will be maintained in dictionaries
