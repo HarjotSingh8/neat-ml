@@ -8,16 +8,16 @@ function setup() {
   frameRate(30);
   initMethods();
   //scenarioInit = null;
-  XORgateInit()
+  XORgateGradientInit()
 }
 
 function draw() {
   if (scenarioDraw) {
-    noStroke()
+    //noStroke()
     scenarioDraw();
-    noFill()
-    stroke(1);
-    rect(0,0,100,100)
+    //noFill()
+    //stroke(1);
+    //rect(0,0,100,100)
   } else {
     //background(100);
   }

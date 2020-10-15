@@ -52,7 +52,7 @@ class NEAT {
 
     // Max Nodes
     // Number of Maximum Nodes in a network
-    this.maxNodes = parameters.maxNodes || 5;
+    this.maxNodes = parameters.maxNodes || 6;
 
     // Max Connections
     // Number of Maximum Connections in a network
