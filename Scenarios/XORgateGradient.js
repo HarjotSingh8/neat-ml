@@ -3,7 +3,7 @@ class XORgateGradient {
   constructor(population) {
     this.populationCount = population;
     this.population = [];
-    this.resolution = 100;
+    this.resolution = 10;
     this.numDataPoints = 100;
     this.currentDataPoint = []
     this.initPopulation();
@@ -117,7 +117,10 @@ class XORgateGradient {
 }
 
 function XORgateGradientDraw() {
+  //for(var i=0; i<1; i++) {
   XORgateGradientEvaluate();
+  //nextGeneration(scenarioClass.population)
+ // }
   /*for(var i=0; i<scenarioClass.population.length; i++) {
     fill(scenarioClass.population[i].score*255)
     //console.log(scenarioClass.population[i].score*255);
@@ -125,23 +128,27 @@ function XORgateGradientDraw() {
     Math.floor(scenarioClass.population[i].inputs[1]*100),1,1)
   }*/
   //if(neat.generation%1==0) {
+  //if(neat.generation%100==0) {
   neat.sort()
   //document.getElementById("framerate").innerText=neat.population[0].score
   //console.log(neat.population[0].score)
-  for(var i=0; i<100; i+=resolution) {
-    for(var j=0; j<100; j+=resolution) {
+
+  for(var i=0; i<100; i+=scenarioClass.resolution) {
+    for(var j=0; j<100; j+=scenarioClass.resolution) {
       fill(neat.population[0].activate([i/100,j/100])*255)
     //console.log(scenarioClass.population[i].score*255);
-      rect(i,j,resolution,resolution)
+      rect(i,j,scenarioClass.resolution,scenarioClass.resolution)
     }
   }
   
   //neat.population.sort()
   var count=0;
+  //var x = Math.floor(random(0,scenarioClass.populationCount/10))
+  var x = 0;
   for(var i=0; i<scenarioClass.dataPoints.length;i++) {
     var a = scenarioClass.dataPoints[i][0];
     var b = scenarioClass.dataPoints[i][1];
-    var c = neat.population[0].activate([a,b])
+    var c = neat.population[x].activate([a,b])
     //var d = scenarioClass.score(0,[a,b,c])
     fill(255,0,0);
     
@@ -166,8 +173,16 @@ function XORgateGradientDraw() {
     fill(255,0,0)
     rect(Math.floor(a*100),Math.floor(b*100),1,1)
   }
-  if(count==scenarioClass.populationCount) {
+  if(count==scenarioClass.numDataPoints) {
     noLoop()
+    for(var i=0; i<100; i+=1) {
+      for(var j=0; j<100; j+=1) {
+        fill(neat.population[0].activate([i/100,j/100])*255)
+      //console.log(scenarioClass.population[i].score*255);
+        rect(i,j,1,1)
+      }
+    }
+    return;
   }
  // }
   //console.log(neat.population[0].score);
@@ -179,7 +194,7 @@ function XORgateGradientDraw() {
 
 function XORgateGradientInit() {
   background(0);
-  var pop = 1000
+  var pop = 50
   initializeNeat({
     iterative: false,
     NEATparams: { 

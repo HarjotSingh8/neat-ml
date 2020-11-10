@@ -5,10 +5,11 @@ function setup() {
   //cnv.parent("canvasParent");
   centerCanvas();
   noStroke();
-  frameRate(30);
+  frameRate(60);
   initMethods();
   //scenarioInit = null;
   XORgateGradientInit()
+  //XORgateInit()
 }
 
 function draw() {
@@ -21,7 +22,7 @@ function draw() {
   } else {
     //background(100);
   }
-  //document.getElementById("framerate").innerText = round(frameRate());
+  document.getElementById("framerate").innerText = round(frameRate());
 }
 
 function centerCanvas() {
