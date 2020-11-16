@@ -7,7 +7,7 @@ class NEAT {
     }
     this.input = parameters.input; //number of inputs
     this.output = parameters.output; //number of outputs
-
+    this.score = 0;
     //current generation number
     this.generation = parameters.generation || 0;
     //function to evaluate fitness
@@ -15,7 +15,7 @@ class NEAT {
 
     //population count
     //number >= 2
-    this.populationCount = parameters.populationCount||100;
+    this.populationCount = parameters.populationCount || 100;
     if (this.populationCount < 2) this.populationCount = 2;
 
     //Crossover Methods
@@ -33,7 +33,7 @@ class NEAT {
 
     // Safe Population Percent (Number [0-100))
     // Percentage of population that is safe from mutations and eliminations
-    this.safePopulationPercent = parameters.safePopulationPercent || 0.1
+    this.safePopulationPercent = parameters.safePopulationPercent || 0.1;
 
     // Mutation Rate (Number [0-1])
     // How much can nodes mutate
@@ -41,7 +41,7 @@ class NEAT {
     // Higher mutation rate means fater changes, but organism might oscillate on reaching minima)
     this.mutationRate = parameters.mutationRate || 0.9;
 
-    this.mutationAmount = parameters.mutationAmount || 1
+    this.mutationAmount = parameters.mutationAmount || 1;
     // Fixed Topology (Bool)
     // Whether the Topology is fixed or augmentable
     //this.fixedTopology = parameters.fixedTopology;
@@ -114,7 +114,7 @@ class NEAT {
     this.sort();
     //console.log(this.population[0].score)
     //var fittest = Network.importFromJSON(this.population[0].exportToJSON());
-    var fittest = this.population[0]
+    var fittest = this.population[0];
     fittest.score = this.population[0].score;
     var nextPopulation = [];
 
@@ -139,13 +139,13 @@ class NEAT {
     //console.log(safePopulationCount)
     this.mutate();
     this.population.push(...safePopulation);
-    this.sort()
+    this.sort();
     //reset scores
     for (var i = 0; i < this.population.length; i++) {
       this.population[i].score = undefined;
     }
     this.generation++;
-    
+
     return fittest;
   }
   getOffspring() {
@@ -157,24 +157,26 @@ class NEAT {
   getParent() {
     var i;
     //switch (this.parentSelectionMethod.type) {
-      //case "tournament":
-        var participants = [];
-        for (var i = 0; i < this.parentSelectionMethod.size*this.population.length; i++) {
-          participants.push(
-            this.population[Math.floor(Math.random() * this.population.length)]
-          );
-        }
-        //console.log(participants)
-        participants.sort(function (a, b) {
-          return b.score - a.score;
-        });
-        //console.log(participants);
-        //console.log(participants[
-        //  Math.floor(Math.random() * participants.length)
-        //])
-        return participants[
-          Math.floor(Math.random()* participants.length)
-        ];
+    //case "tournament":
+    var participants = [];
+    for (
+      var i = 0;
+      i < this.parentSelectionMethod.size * this.population.length;
+      i++
+    ) {
+      participants.push(
+        this.population[Math.floor(Math.random() * this.population.length)]
+      );
+    }
+    //console.log(participants)
+    participants.sort(function (a, b) {
+      return b.score - a.score;
+    });
+    //console.log(participants);
+    //console.log(participants[
+    //  Math.floor(Math.random() * participants.length)
+    //])
+    return participants[Math.floor(Math.random() * participants.length)];
     //}
     //possibly could add a switch for different types of crossover if required
   }
@@ -185,20 +187,31 @@ class NEAT {
     //to be completed
     //if(mutationMethod == )
     //select mutation method here
-    var mutationMethod = this.mutationMethod[Math.floor(Math.random() * this.mutationMethod.length)];
+    var mutationMethod = this.mutationMethod[
+      Math.floor(Math.random() * this.mutationMethod.length)
+    ];
 
-    if (mutationMethod === methods.mutation.ADD_NODE && genome.nodes.length >= this.maxNodes) {
+    if (
+      mutationMethod === methods.mutation.ADD_NODE &&
+      genome.nodes.length >= this.maxNodes
+    ) {
       //if (config.warnings) console.warn('maxNodes exceeded!');
       return;
     }
 
-    if (mutationMethod === methods.mutation.ADD_CONN && genome.connections.length >= this.maxConns) {
-      if (config.warnings) console.warn('maxConns exceeded!');
+    if (
+      mutationMethod === methods.mutation.ADD_CONN &&
+      genome.connections.length >= this.maxConns
+    ) {
+      if (config.warnings) console.warn("maxConns exceeded!");
       return;
     }
 
-    if (mutationMethod === methods.mutation.ADD_GATE && genome.gates.length >= this.maxGates) {
-      if (config.warnings) console.warn('maxGates exceeded!');
+    if (
+      mutationMethod === methods.mutation.ADD_GATE &&
+      genome.gates.length >= this.maxGates
+    ) {
+      if (config.warnings) console.warn("maxGates exceeded!");
       return;
     }
 

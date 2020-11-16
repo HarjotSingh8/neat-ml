@@ -1,0 +1,11 @@
+{
+  "NEAT_Library": {
+    "activations.js": {},
+    "connections.js": {},
+    "methods.js": {},
+    "ml.js": {},
+    "neat.js": {},
+    "network.js": {},
+    "node.js": {}
+  }
+}

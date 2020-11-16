@@ -6,14 +6,12 @@ function setup() {
   centerCanvas();
   noStroke();
   frameRate(60);
-  initMethods();
-  //scenarioInit = null;
-  XORgateGradientInit()
-  //XORgateInit()
+  initMethods(); //from NEAT_Library/methods.js (initialises methods)
+  scenarioInit();
 }
 
 function draw() {
-  if (scenarioDraw) {
+  /*if (scenarioDraw) {
     //noStroke()
     scenarioDraw();
     //noFill()
@@ -21,7 +19,8 @@ function draw() {
     //rect(0,0,100,100)
   } else {
     //background(100);
-  }
+  }*/
+  scenarioClass.step();
   document.getElementById("framerate").innerText = round(frameRate());
 }
 
