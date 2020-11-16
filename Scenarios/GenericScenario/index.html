@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>NEAT ML</title>
+    <title>NEAT ML(Generic Scenario)</title>
     <link
       rel="stylesheet"
       href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
@@ -24,7 +24,21 @@
       integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
       crossorigin="anonymous"
     ></script>
-    <script src="data.js"></script>
+
+    <script src="https://unpkg.com/frappe-charts@latest"></script>
+
+    <!-- project scripts -->
+    <script src="../../p5.js"></script>
+    <script src="../../NEAT_Library/methods.js"></script>
+    <script src="../../NEAT_Library/activations.js"></script>
+    <script src="../../NEAT_Library/connection.js"></script>
+    <script src="../../NEAT_Library/network.js"></script>
+    <script src="../../NEAT_Library/neat.js"></script>
+    <script src="../../NEAT_Library/node.js"></script>
+    <script src="../../NEAT_Library/ml.js"></script>
+    <script src="scenario.js"></script>
+    <script src="../../masterControl.js"></script>
+    <script src="../../sketch.js"></script>
   </head>
   <body>
     <div
@@ -33,12 +47,7 @@
       style="z-index: 100"
     >
       <div class="btn btn-dark">NEAT ML</div>
-    </div>
-    <div id="scenarioPicker" class="mx-0 row">
-      <div class="col-12 display-4">Select a Scenario</div>
-      <div class="col-12">
-        <a href="./Scenarios/XORgateGradient/index.html">XOR Gate Gradient</a>
-      </div>
+      <div id="framerate" class="btn btn-dark disabled"></div>
     </div>
   </body>
 </html>

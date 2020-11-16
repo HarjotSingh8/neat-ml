@@ -10,6 +10,7 @@ class Network {
     this.connections = [];
     this.gates = [];
     this.selfconns = [];
+    this.score = 0;
     var i;
     for (i = 0; i < this.input + this.output; i++) {
       var type = i < this.input ? "input" : "output";
@@ -28,6 +29,13 @@ class Network {
    * Activate Newtork
    */
   activate(input, training) {
+    if (typeof input == "object") {
+      var temp = [];
+      for (var i in input) {
+        temp.push(input[i]);
+      }
+      input = temp;
+    }
     var output = [];
     //nodes are ordered in the order of activation
     for (var i = 0; i < this.nodes.length; i++) {
@@ -1364,7 +1372,10 @@ function NetworkcrossOver(network1, network2, equal) {
   }
 
   // Initialise offspring
-  var offspring = new Network({input:network1.input, output:network1.output});
+  var offspring = new Network({
+    input: network1.input,
+    output: network1.output,
+  });
   offspring.connections = [];
   offspring.nodes = [];
 
