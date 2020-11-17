@@ -26,6 +26,7 @@ class Scenario {
       { length: this.scenarioParameters.populationSize },
       (_, i) => i
     );
+    this.avgEpisodeDuration = 0;
     //console.log(this.population[0]);
   }
   /**
@@ -54,6 +55,7 @@ class Scenario {
         data: null,
         iteration: 0,
         score: 0,
+        totalIterations: 0,
       });
     }
   }
@@ -126,6 +128,7 @@ class Scenario {
    * Resets Population
    */
   resetPopulation() {
+    this.avgEpisodeDuration = 0;
     this.activeIndividuals = Array.from(
       { length: this.scenarioParameters.populationSize },
       (_, i) => i
@@ -136,6 +139,7 @@ class Scenario {
       this.population[i].iteration = 0;
       this.population[i].episode = 0;
       this.population[i].alive = true;
+      this.population[i].totalIterations = 0;
     }
     if (this.scenarioParameters.randomizeTrainingDataEveryGeneration == true)
       this.randomizeTrainingData();
@@ -219,6 +223,17 @@ class Scenario {
     var reward;
     if (!done) {
       reward = 1;
+      individual.totalIterations += 1;
+      if (
+        individual.totalIterations / (individual.episode + 1) >
+        this.avgEpisodeDuration
+      ) {
+        this.avgEpisodeDuration =
+          individual.totalIterations / (individual.episode + 1);
+        document.getElementById(
+          "episodeDuration"
+        ).innerText = this.avgEpisodeDuration;
+      }
     } else {
       //console.log("dead");
       individual.alive = false;
@@ -235,9 +250,11 @@ class Scenario {
     this.drawEveryIteration();
     //console.log(this.activeIndividuals.length);
     if (this.activeIndividuals.length == 0) {
-      console.log(neat.population[0].score);
       neat.sort();
+      console.log(neat.population[0].score);
+      console.log(neat);
       this.generation++;
+      document.getElementById("generation").innerText = this.generation;
       //if (this.generation % 1 == 0) this.drawEveryGeneration();
       if (this.generation == 20) {
         noLoop();
@@ -245,7 +262,7 @@ class Scenario {
         return;
       }
       neat.evolve();
-      console.log(neat);
+
       this.resetPopulation();
     }
     for (var i = this.activeIndividuals.length - 1; i >= 0; i--) {
@@ -458,12 +475,11 @@ function scenarioInit() {
 
   // Angle at which to fail the episode
   let theta_threshold_radians = (12 * 2 * Math.PI) / 360;
-  console.log(theta_threshold_radians);
-  let x_threshold = 2.4;
 
+  let x_threshold = 2.4;
   scenarioClass = new Scenario({
     populationSize: pop,
-    episodesPerGeneration: 25,
+    episodesPerGeneration: 10,
     episodeLength: 500,
     trainingDataSchema: {
       cartPosition: { min: -0.45, max: 0.45 },
