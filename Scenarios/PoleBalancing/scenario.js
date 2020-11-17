@@ -1,245 +1,489 @@
-/**
- * Cart-pole system implemented by openai
- * Copied from https://github.com/openai/gym/blob/master/gym/envs/classic_control/cartpole.py
- *
- * Openai's cart-pole was copied from:
- *   Classic cart-pole system implemented by Rich Sutton et al.
- *   Copied from http://incompleteideas.net/sutton/book/code/pole.c
- *   permalink: https://perma.cc/C9ZM-652R
- *
- */
-
-class PoleBalancing {
-  /**
-     * Description from openai's repository
-    Description:
-        A pole is attached by an un-actuated joint to a cart, which moves along
-        a frictionless track. The pendulum starts upright, and the goal is to
-        prevent it from falling over by increasing and reducing the cart's
-        velocity.
-    Source:
-        This environment corresponds to the version of the cart-pole problem
-        described by Barto, Sutton, and Anderson
-    Observation:
-        Type: Box(4)
-        Num     Observation               Min                     Max
-        0       Cart Position             -4.8                    4.8
-        1       Cart Velocity             -Inf                    Inf
-        2       Pole Angle                -0.418 rad (-24 deg)    0.418 rad (24 deg)
-        3       Pole Angular Velocity     -Inf                    Inf
-    Actions:
-        Type: Discrete(2)
-        Num   Action
-        0     Push cart to the left
-        1     Push cart to the right
-        Note: The amount the velocity that is reduced or increased is not
-        fixed; it depends on the angle the pole is pointing. This is because
-        the center of gravity of the pole increases the amount of energy needed
-        to move the cart underneath it
-    Reward:
-        Reward is 1 for every step taken, including the termination step
-    Starting State:
-        All observations are assigned a uniform random value in [-0.05..0.05]
-    Episode Termination:
-        Pole Angle is more than 12 degrees.
-        Cart Position is more than 2.4 (center of the cart reaches the edge of
-        the display).
-        Episode length is greater than 200.
-        Solved Requirements:
-        Considered solved when the average return is greater than or equal to
-        195.0 over 100 consecutive trials.
-        
-     */
-
-  constructor(population) {
-    this.trainingDataSize = 100;
-    this.trainingData = [];
-    this.populationSize = population;
+class Scenario {
+  constructor(scenarioParameters) {
+    this.scenarioParameters = {
+      //if shared episodes is true, then each individual will have identical sets of data for episodes in a generation
+      sharedEpisodes: scenarioParameters.sharedEpisodes || true,
+      populationSize: scenarioParameters.populationSize || 10,
+      episodeLength: scenarioParameters.episodeLength || 1,
+      episodesPerGeneration: scenarioParameters.episodesPerGeneration || 10,
+      trainingDataSchema: scenarioParameters.trainingDataSchema || {
+        a: { min: 0, max: 1 },
+        b: { min: 0, max: 1 },
+      },
+      randomizeTrainingDataEveryGeneration:
+        scenarioParameters.randomizeTrainingDataEveryGeneration || false,
+      iterative: scenarioParameters.iterative || false,
+    };
+    this.scenarioVariables = scenarioParameters.scenarioVariables;
+    this.currentIndividual = 0;
+    this.generation = 0;
     this.population = [];
-    this.resolution = 50;
-    this.gravity = 9.8;
-    this.cartMass = 1;
-    this.poleMass = 0.1;
-    this.total_mass = this.cartMass + this.poleMass;
-    this.poleLength = 0.2;
-    this.forceMag = 10;
-    this.deltaTime = 0.02;
-    this.cartwidth = 0.2;
-    this.cartheight = 0.1;
-    this.x_threshold = 0.5;
+    this.trainingData = scenarioParameters.trainingData || [];
+    this.trained = false;
     this.initPopulation();
+    //if (this.scenarioParameters.iterative)
+    this.activeIndividuals = Array.from(
+      { length: this.scenarioParameters.populationSize },
+      (_, i) => i
+    );
+    //console.log(this.population[0]);
   }
+  /**
+   * Init Population
+   * This function will not vary with scenario
+   */
   initPopulation() {
-    for (var i = 0; i < this.populationSize; i++) {
-      this.population.push([]);
+    var data = {};
+    for (var i in this.scenarioParameters.trainingDataSchema) {
+      data[i] = 0;
     }
-    for (var i = 0; i < this.trainingDataSize; i++) {
-      var cartPosition = random(0.45, 0.55);
-      var cartVelocity = random(-0.05, 0.05);
-      var theta = random(-0.05, 0.05);
-      var theta_dot = random(-0.05, 0.05);
-      var color = [random(0, 255), random(0, 255), random(0, 255)];
-      this.trainingData.push({
-        cartPosition: cartPosition,
-        cartVelocity: cartVelocity,
-        theta: theta,
-        theta_dot: theta_dot,
-        force: 0,
-        color: color,
+    if (
+      this.scenarioParameters.randomizeTrainingDataEveryGeneration == true ||
+      this.trainingData.length == 0
+    )
+      this.randomizeTrainingData();
+    for (var i = 0; i < this.scenarioParameters.populationSize; i++) {
+      this.population.push({
+        id: i,
+        alive: true,
+        generationCompleted: false,
+        trainingCompleted: false,
+        episode: 0,
+        inputs: [...this.trainingData[0]],
+        outputs: null,
+        data: null,
+        iteration: 0,
+        score: 0,
       });
-      for (var j = 0; j < this.populationSize; j++) {
-        this.population[j].push({
-          cartPosition: cartPosition,
-          cartVelocity: cartVelocity,
-          theta: theta,
-          theta_dot: theta_dot,
-          force: 0,
-          color: color,
-        });
+    }
+  }
+  /**
+   * Random Training Data
+   * This function will not vary with scenario
+   * This function generates one set of randomised training data
+   */
+  randomTrainingData() {
+    var temp = [];
+    for (var i in this.scenarioParameters.trainingDataSchema) {
+      temp.push(
+        random(
+          this.scenarioParameters.trainingDataSchema[i].min,
+          this.scenarioParameters.trainingDataSchema[i].max
+        )
+      );
+    }
+    return temp;
+  }
+  /**
+   * Randomize Training Data
+   * This function will not vary with scenario,
+   * Randomizes entire training data
+   */
+  randomizeTrainingData() {
+    if (
+      this.scenarioParameters.randomizeTrainingDataEveryGeneration ||
+      this.trainingData.length != this.scenarioParameters.episodesPerGeneration
+    ) {
+      this.trainingData = [];
+      for (var i = 0; i < this.scenarioParameters.episodesPerGeneration; i++) {
+        var temp = this.randomTrainingData();
+        this.trainingData.push(temp);
       }
     }
   }
   /**
-   * cart Pole Physics
-   * If the pole is falling down, there are some things to consider
-   * If no force is being applied,
-   * the center of mass of the pole and cart should remain constant in x-axis as the pole starts falling
-   * beacuse direction of gravitational force is along y-axis
-   *
-   * speed of the pole falling down is to be calculated
+   * Evaluate
+   * This function will not vary with scenario,
+   * check scenario parameters instead to make this function suit your needs
+   * Evaluates a generation
    */
-  step(self, action) {
-    /*var theta = state.poleAngle;
-        var force = action;
-        //theta is the angle the stick makes with y axis
-        var cosTheta = Math.cos(theta); //for forces along y-axis
-        var sinTheta = Math.sin(theta); //for forces along x-axis
-        var stickCounterForceY = this.gravity*cosTheta*this.poleMass; //force supported by the base of the stick
-        var stickForceX = this.graviy*sinTheta*this.poleMass; //force exerted by stick on the cart X axis
-        var cartForceX = stickForceX + force;
-        state.cartVelocity = cartVelocity + (cartForceX/this.cartMass)*this.deltaTime; //v=u+at; a=f/m
-        var changeCartPosX = state.cartVelocity*this.deltaTime
-        state.cartPosition = state.cartPosition + changeCartPosX; //s=d+vt
-        
-        var netVerticalAcceleration = g(1-cosTheta);
-        var changePoleCenterY = 
-        var newPoleXdisplacement = sinTheta+changeCartPosX;
-        var newPoleYdisplacement = cosTheta+*/
-    var x = self.state[0];
-    var x_dot = self.state[1];
-    var theta = self.state[2];
-    var theta_dot = self.state[3];
-    var force = self.force_mag * action > 0 ? 1 : -1;
+  evaluate() {
+    for (var i = 0; i < this.scenarioParameters.populationSize; i++) {
+      this.population[i].score += this.evaluateIndividual();
+      this.population[i].iteration += 1;
+      this.population[i];
+    }
+  }
+  /**
+   * Evaluate Individual
+   * This function will not vary with scenario,
+   * Evaluates an individual
+   */
+  evaluateIndividual(index) {
+    let inputs = [];
+    for (var i in this.population[index].trainingData) {
+      inputs.push(this.population[index].trainingData[i]);
+    }
+    let outputs = neat.population[index].activate(inputs);
+    //evaluate neat and get its outputs here
+    this.step(this.population[index], outputs);
+    return score;
+  }
+  /**
+   * Reset Population
+   * This function will not vary with scenario,
+   * check scenario parameters instead to make this function suit your needs
+   * Resets Population
+   */
+  resetPopulation() {
+    this.activeIndividuals = Array.from(
+      { length: this.scenarioParameters.populationSize },
+      (_, i) => i
+    );
+    for (var i = 0; i < this.scenarioParameters.populationSize; i++) {
+      this.population[i].score = 0;
+      neat.population[i].score = 0;
+      this.population[i].iteration = 0;
+      this.population[i].episode = 0;
+      this.population[i].alive = true;
+    }
+    if (this.scenarioParameters.randomizeTrainingDataEveryGeneration == true)
+      this.randomizeTrainingData();
+    for (var i = 0; i < this.scenarioParameters.populationSize; i++) {
+      this.population[i].trainingIndex = 0;
+      this.population[i].inputs = { ...this.trainingData[0] };
+    }
+  }
+  train() {
+    //if (this.generationCompleted) {
+    //  this.nextGeneration();
+    //} else {
+    this.step();
+    this.draw();
+    //}
+  }
+  /**
+   * Step
+   * This function will vary with scenario
+   * One step of evaluation
+   */
+  runIteration(individual, actions) {
+    //console.log(actions[0]);
+    //actions are outputs of ML
+    var x = individual.inputs[0];
+    var x_dot = individual.inputs[1];
+    var theta = individual.inputs[2];
+    var theta_dot = individual.inputs[3];
+    var force = this.scenarioVariables.force_mag * actions[0] > 0 ? 1 : -1;
     var costheta = Math.cos(theta);
     var sintheta = Math.sin(theta);
-
+    //console.log(force);
+    //console.log([x, x_dot, theta, theta_dot, force, costheta, sintheta]);
     var temp =
-      (force + self.polemass_length * theta_dot ** 2 * sintheta) /
-      self.total_mass;
+      (force +
+        this.scenarioVariables.polemass_length *
+          Math.pow(theta_dot, 2) *
+          sintheta) /
+      this.scenarioVariables.total_mass;
+    //console.log(this.scenarioVariables.polemass_length);
     var thetaacc =
-      (self.gravity * sintheta - costheta * temp) /
-      (self.length *
-        (4.0 / 3.0 - (self.masspole * costheta ** 2) / self.total_mass));
+      (this.scenarioVariables.gravity * sintheta - costheta * temp) /
+      (this.scenarioVariables.length *
+        (4.0 / 3.0 -
+          (this.scenarioVariables.masspole * Math.pow(costheta, 2)) /
+            this.scenarioVariables.total_mass));
     var xacc =
-      temp - (self.polemass_length * thetaacc * costheta) / self.total_mass;
+      temp -
+      (this.scenarioVariables.polemass_length * thetaacc * costheta) /
+        this.scenarioVariables.total_mass;
 
-    if (self.kinematics_integrator == "euler") {
-      x = x + self.tau * x_dot;
-      x_dot = x_dot + self.tau * xacc;
-      theta = theta + self.tau * theta_dot;
-      theta_dot = theta_dot + self.tau * thetaacc;
+    if (this.scenarioVariables.kinematics_integrator == "euler") {
+      x = x + this.scenarioVariables.tau * x_dot;
+      x_dot = x_dot + this.scenarioVariables.tau * xacc;
+      theta = theta + this.scenarioVariables.tau * theta_dot;
+      theta_dot = theta_dot + this.scenarioVariables.tau * thetaacc;
     } else {
       // semi-implicit euler
-      x_dot = x_dot + self.tau * xacc;
-      x = x + self.tau * x_dot;
-      theta_dot = theta_dot + self.tau * thetaacc;
-      theta = theta + self.tau * theta_dot;
+      x_dot = x_dot + this.scenarioVariables.tau * xacc;
+      x = x + this.scenarioVariables.tau * x_dot;
+      theta_dot = theta_dot + this.scenarioVariables.tau * thetaacc;
+      theta = theta + this.scenarioVariables.tau * theta_dot;
     }
-
-    self.state = [x, x_dot, theta, theta_dot];
-    done =
-      x < -self.x_threshold ||
-      x > self.x_threshold ||
-      theta < -self.theta_threshold_radians ||
-      theta > self.theta_threshold_radians;
-
+    //console.log(theta);
+    individual.inputs = [x, x_dot, theta, theta_dot];
+    var done =
+      x < -this.scenarioVariables.x_threshold ||
+      x > this.scenarioVariables.x_threshold ||
+      theta < -this.scenarioVariables.theta_threshold_radians ||
+      theta > this.scenarioVariables.theta_threshold_radians
+        ? true
+        : false;
+    if (
+      x < -this.scenarioVariables.x_threshold ||
+      x > this.scenarioVariables.x_threshold ||
+      theta < -this.scenarioVariables.theta_threshold_radians ||
+      theta > this.scenarioVariables.theta_threshold_radians
+    ) {
+      //console.log("done");
+    }
     var reward;
     if (!done) {
       reward = 1;
     } else {
+      //console.log("dead");
+      individual.alive = false;
       reward = 0;
     }
     return reward;
   }
-  reset() {
-    //reset here
-    for (var i = 0; i < this.populationCount; i++) {}
+  step() {
+    //console.log(this.activeIndividuals);
+    // console.log(neat);
+    var index;
+
+    //console.log([this.population[0].inputs[0], this.population[0].inputs[2]]);
+    this.drawEveryIteration();
+    //console.log(this.activeIndividuals.length);
+    if (this.activeIndividuals.length == 0) {
+      console.log(neat.population[0].score);
+      neat.sort();
+      this.generation++;
+      //if (this.generation % 1 == 0) this.drawEveryGeneration();
+      if (this.generation == 20) {
+        noLoop();
+        this.resetPopulation();
+        return;
+      }
+      neat.evolve();
+      console.log(neat);
+      this.resetPopulation();
+    }
+    for (var i = this.activeIndividuals.length - 1; i >= 0; i--) {
+      index = this.activeIndividuals[i];
+      //console.log(index);
+
+      //if episode is completed
+      if (
+        !this.population[index].alive ||
+        this.population[index].iteration > this.scenarioParameters.episodeLength
+      ) {
+        this.population[index].alive = true;
+        this.population[index].episode++;
+        this.population[index].iteration = 0;
+        if (
+          this.population[index].episode <
+          this.scenarioParameters.episodesPerGeneration
+        )
+          this.population[index].inputs = [
+            ...this.trainingData[this.population[index].episode],
+          ];
+      }
+
+      //if all episodes for an individual for a generation are completed
+      if (
+        this.population[index].episode >
+        this.scenarioParameters.episodesPerGeneration
+      ) {
+        this.activeIndividuals.splice(i, 1);
+      } else {
+        this.population[index].iteration += 1;
+        neat.population[index].score += this.runIteration(
+          this.population[index],
+          neat.population[index].activate(this.population[index].inputs)
+        );
+        //console.log("yolo");
+        //neat.population[index].score += this.score(this.population[index]);
+      }
+    }
+    /*
+    for (var i = 0; i < this.scenarioParameters.populationSize; i++) {
+      for (var j = 0; j < this.scenarioParameters.episodesPerGeneration; j++) {
+        neat.population[i].score += this.score(
+          this.trainingData[j],
+          neat.population[i].activate(this.trainingData[j])[0]
+        );
+      }
+    }
+    neat.sort();
+    this.generation++;
+    if (this.generation % 1 == 0) this.drawEveryGeneration();
+    neat.evolve();
+    //console.log("generation");
+    //console.log("generation" + this.generation);
+    //console.log(neat.population[0]);
+    this.resetPopulation();*/
+    /*
+    console.log("step");
+    if (this.generation > 100) {
+      noLoop();
+    }
+    if (!this.trained) {
+      var completedCount = 0;
+      for (var i = 0; i < this.scenarioParameters.populationSize; i++) {
+        //go through population
+        if (this.population[i].alive) {
+          //is alive/remaining steps
+          //evaluate
+          //add score
+          this.population[i].outputs = neat.population[i].activate(
+            this.trainingData[this.population[i].iteration]
+          );
+          //console.log(this.score(i));
+          //console.log(neat.population[i].score);
+
+          neat.population[i].score += this.score(i);
+
+          this.population[i].iteration++;
+          if (
+            this.population[i].iteration >=
+            this.scenarioParameters.scenarioLength
+          ) {
+            this.population[i].alive = false;
+          }
+        } else {
+          //is dead/completed steps for current inputs
+          if (
+            this.population[i].trainingIndex <
+            this.scenarioParameters.trainingIterationsPerGeneration
+          ) {
+            this.population[i].trainingIndex++;
+            this.population[i].inputs = {
+              ...this.trainingData[this.population[i].trainingIndex],
+            };
+            //more training data sets remain for this generation
+            //proceed to next training set
+          } else {
+            //training data sets for this generation are completed
+            //if every index is complete, then next generation
+            completedCount++;
+          }
+        }
+      }
+      if (completedCount == this.scenarioParameters.populationSize) {
+        neat.sort();
+
+        this.generation++;
+        if (this.generation % 2 == 0) this.drawEveryGeneration();
+        neat.evolve();
+        console.log("generation");
+        //console.log("generation" + this.generation);
+        //console.log(neat.population[0]);
+        this.resetPopulation();
+      }
+    }*/
   }
-  render() {
+  /**
+   * Score
+   * This function will vary with scenario
+   * Calculates score from current situation
+   */
+  score(inputs, output) {
+    var d = Math.abs(inputs[0] - inputs[1]);
+    d = Math.abs(d - output) + 0.1;
+    return 1 / d;
+  }
+  /**
+   * Draw Every Iteration
+   * This function will vary with scenario
+   * manages drawing on the canvas
+   */
+  drawEveryIteration() {
+    //let index = this.scenarioParameters.populationSize - 1;
+    let index = this.activeIndividuals[0] || 0;
+
+    if (!this.population[index].alive) {
+      background(255, 0, 0);
+      return;
+    }
     var screen_width = 100;
     var screen_height = 100;
     var screen_offset_x = 0;
     var screen_offset_y = 0;
-    var world_width = this.x_threshold * 2;
+    var world_width = this.scenarioVariables.x_threshold * 2;
     var scale = screen_width / world_width;
-    var carty = 100 - this.cartheight * scale;
-    var polewidth = 10;
-    var polelen = scale * (2 * this.length);
-    var cartwidth = 50;
-    var cartheight = 30;
 
+    var polewidth = 10;
+    var polelen = scale * (2 * this.scenarioVariables.length);
+    var cartwidth = 0.5;
+    var cartheight = 0.3;
+    var carty = 100 - cartheight * scale;
     //cart
     background(0);
     fill(0);
     stroke(255, 0, 0);
+    //console.log(this.population[0]);
+
     rect(
-      (this.states[0].cartPosition - this.cartwidth / 2) * scale,
+      (this.population[index].inputs[0] - cartwidth / 2) * scale +
+        screen_width / 2,
       carty,
-      this.cartwidth * scale,
-      this.cartheight * scale
+      cartwidth * scale,
+      cartheight * scale
     );
     //pole
     stroke(255, 255, 255);
     strokeWeight(1);
-    console.log(this.states[0].theta_dot);
-    console.log(sin(this.states[0].theta_dot));
+
     line(
-      this.states[0].cartPosition * scale,
+      this.population[index].inputs[0] * scale + screen_width / 2,
       carty,
-      this.states[0].cartPosition * scale +
-        scale * this.poleLength * Math.sin(this.states[0].theta),
-      carty - Math.abs(scale * this.poleLength * Math.cos(this.states[0].theta))
+      this.population[index].inputs[0] * scale +
+        scale * polelen * Math.sin(this.population[index].inputs[2]) +
+        screen_width / 2,
+      carty -
+        Math.abs(scale * polelen * Math.cos(this.population[index].inputs[2]))
     );
   }
-}
-
-class Scenario {}
-
-function scenarioDraw() {
-  scenarioObject.render();
+  /**
+   * Draw Every Genration
+   * This function varies with scenario
+   */
+  drawEveryGeneration() {}
 }
 
 function scenarioInit() {
   background(0);
   var pop = 100;
   initializeNeat({
+    iterative: false,
     NEATparams: {
       input: 4,
       output: 1,
       populationCount: pop,
-      mutationRate: 0.9,
+      mutationRate: 1,
       maxNodes: 10,
       safePopulationPercent: 0.2,
       exported: false,
     },
   });
-  scenarioObject = new PoleBalancing(pop);
-  scenarioReset = () => {
-    scenarioObject.resetPopulation();
-  };
-  scenarioScore = scenarioObject.score;
-}
+  let gravity = 9.8;
+  let masscart = 1.0;
+  let masspole = 0.1;
+  let total_mass = masspole + masscart;
+  let length = 0.5; // actually half the pole's length
+  let polemass_length = masspole * length;
+  let force_mag = 10.0;
+  let tau = 0.02; // seconds between state updates
+  let kinematics_integrator = "euler";
 
-function scenarioEvaluate() {
-  for (var i = 0; i < scenarioObject.populationCount; i++) {}
+  // Angle at which to fail the episode
+  let theta_threshold_radians = (12 * 2 * Math.PI) / 360;
+  console.log(theta_threshold_radians);
+  let x_threshold = 2.4;
+
+  scenarioClass = new Scenario({
+    populationSize: pop,
+    episodesPerGeneration: 25,
+    episodeLength: 500,
+    trainingDataSchema: {
+      cartPosition: { min: -0.45, max: 0.45 },
+      cartVelocity: { min: -0.05, max: 0.05 },
+      theta: { min: -0.05, max: 0.05 },
+      theta_dot: { min: -0.05, max: 0.05 },
+    },
+    scenarioVariables: {
+      resolution: 50,
+      gravity: gravity,
+      masscart: masscart,
+      masspole: masspole,
+      total_mass: total_mass,
+      length: length,
+      polemass_length: polemass_length,
+      force_mag: force_mag,
+      tau: tau,
+      kinematics_integrator: kinematics_integrator,
+      theta_threshold_radians: theta_threshold_radians,
+      x_threshold: x_threshold,
+    },
+  });
 }
