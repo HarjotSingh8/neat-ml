@@ -27,7 +27,7 @@ class Scenario {
       (_, i) => i
     );
     this.avgEpisodeDuration = 0;
-    this.bestIndex = 0;
+    this.bestScore = 0;
     //console.log(this.population[0]);
   }
   /**
@@ -129,7 +129,6 @@ class Scenario {
    * Resets Population
    */
   resetPopulation() {
-    this.bestIndex = 0;
     this.avgEpisodeDuration = 0;
     this.activeIndividuals = Array.from(
       { length: this.scenarioParameters.populationSize },
@@ -226,17 +225,6 @@ class Scenario {
     if (!done) {
       reward = 1;
       individual.totalIterations += 1;
-      if (
-        individual.totalIterations / (individual.episode + 1) >
-        this.avgEpisodeDuration
-      ) {
-        this.bestIndex = individual.id;
-        this.avgEpisodeDuration =
-          individual.totalIterations / (individual.episode + 1);
-        document.getElementById(
-          "episodeDuration"
-        ).innerText = this.avgEpisodeDuration;
-      }
     } else {
       //console.log("dead");
       individual.alive = false;
@@ -301,6 +289,14 @@ class Scenario {
           this.population[index],
           neat.population[index].activate(this.population[index].inputs)
         );
+        if (neat.population[index].score > this.bestScore) {
+          this.bestScore = neat.population[index].score;
+          document.getElementById("bestScore").innerText =
+            this.bestScore +
+            "/" +
+            (this.scenarioParameters.episodesPerGeneration + 1) *
+              (this.scenarioParameters.episodeLength + 1);
+        }
         //console.log("yolo");
         //neat.population[index].score += this.score(this.population[index]);
       }
@@ -399,8 +395,8 @@ class Scenario {
    */
   drawEveryIteration() {
     //let index = this.scenarioParameters.populationSize - 1;
-    //let index = this.activeIndividuals[0] || 0;
-    let index = this.bestIndex;
+    let index = this.activeIndividuals[0] || 0;
+
     if (!this.population[index].alive) {
       background(255, 0, 0);
       return;
