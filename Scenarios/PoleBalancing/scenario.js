@@ -27,6 +27,7 @@ class Scenario {
       (_, i) => i
     );
     this.avgEpisodeDuration = 0;
+    this.bestIndex = 0;
     //console.log(this.population[0]);
   }
   /**
@@ -128,6 +129,7 @@ class Scenario {
    * Resets Population
    */
   resetPopulation() {
+    this.bestIndex = 0;
     this.avgEpisodeDuration = 0;
     this.activeIndividuals = Array.from(
       { length: this.scenarioParameters.populationSize },
@@ -228,6 +230,7 @@ class Scenario {
         individual.totalIterations / (individual.episode + 1) >
         this.avgEpisodeDuration
       ) {
+        this.bestIndex = individual.id;
         this.avgEpisodeDuration =
           individual.totalIterations / (individual.episode + 1);
         document.getElementById(
@@ -396,8 +399,8 @@ class Scenario {
    */
   drawEveryIteration() {
     //let index = this.scenarioParameters.populationSize - 1;
-    let index = this.activeIndividuals[0] || 0;
-
+    //let index = this.activeIndividuals[0] || 0;
+    let index = this.bestIndex;
     if (!this.population[index].alive) {
       background(255, 0, 0);
       return;
